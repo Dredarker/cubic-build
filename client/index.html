@@ -36,6 +36,7 @@
 			overflow-y: auto;
 		}
 		#chatInput {
+			border-style: hidden;
 			background: #777777;
 			color: white;
 			width: 400px;
@@ -68,9 +69,11 @@
 		i {
 			font-family: arial;
 		}
+		b {
+			font-family: arial;
+		}
 		#title {
 			font-size: 48px;
-			font-family: arial;
 		}
 		.colume {
 			text-align: center;
@@ -90,15 +93,37 @@
 		<b id="title">Cubic Build</b>
 		<i id="version">v0.0</i>
 		<div class="block">
-			<div id="left" class="block colume">
+			<div class="block colume">
 				<div class="block">
-					<input id="nicknameInput"/><input type="button" onclick="runGame()" value="Play"/>
+					<div class="block">
+						<input id="nicknameInput"/><input type="button" onclick="runGame()" value="Play"/>
+					</div>
+					<div class="block">
+						<b style="color:red" id="error"></b>
+					</div>
 				</div>
-				<div class="block">
-					<b style="color:red" id="error"></b>
+				<div class="block" style="margin: 6px">
+					<b>COLORS</b>
+				</div>
+				<div id="colorEdit" class="block">
+					<div class="inline">
+						<input id="colorHairInput" type="color"/><p>Hair</p>
+					</div>
+					<div class="inline">
+						<input id="colorSkinInput" type="color"/><p>Skin</p>
+					</div>
+					<div class="inline">
+						<input id="colorBodyInput" type="color"/><p>Body</p>
+					</div>
+					<div class="inline">
+						<input id="colorLegInput" type="color"/><p>Leg</p>
+					</div>
+					<div class="inline">
+						<input id="colorFootInput" type="color"/><p>Foot</p>
+					</div>
 				</div>
 			</div>
-			<div id="right" class="block colume">
+			<div class="block colume">
 				<p>Our Community</p>
 				<a href="https://discord.gg/eQyezGmJHT">Discord</a>
 			</div>
@@ -108,14 +133,17 @@
 
 <script>
 nicknameInput.placeholder = "Nickname";
-var gameVersion = [0, 1, 1];
+var gameVersion = [0, 2, 1];
 version.innerHTML = "v"+gameVersion.join(".");
 
-menu.style.width = "700px";
+colorEdit.style.display = "none";
+document.querySelector("#menu > div > div:nth-child(1) > div:nth-child(2) > b").innerText = "Colors will be soon";
+
+menu.style.width = "500px";
 menu.style.height = "400px";
 menu.style.left = (document.documentElement.clientWidth/2 - parseInt(menu.style.width)/2)+"px";
 
-chatInput.maxLength = 200;
+chatInput.maxLength = 250;
 nicknameInput.maxLength = 20;
 
 function runGame() {
@@ -139,7 +167,8 @@ sounds.new = (name, source) => {
 
 const helpBook = [
 	"Помощь:",
-	"/run (code) - executes code (A)",
+	"/run (code) - executes code in server (A)",
+	"/crun (code) - executes code in client",
 	"/pass (password) - sets console password",
 	"/mode (mode) ... - selects console mode (A)",
 	"/tp (pos)|(nickname) (nickname|pos)] - teleports you/player to position/player (A)",
@@ -148,19 +177,20 @@ const helpBook = [
 	"A - Requests console password",
 ];
 
-const myData = {id: "", x: 0, y: 0, syncx: 0, syncy: 0};
+const myData = {id: "", x: 0, y: 0, width: 0, height: 0, syncx: 0, syncy: 0, visx: 0, visy: 0, esp: false};
 const myObject = {};
 
-images.source = "https://raw.githubusercontent.com/Dredarker/game-server/52add8b1507e8e41811bd7c1cc9fa6f18b5d899e/client/img/";
-images.new("player_body", "player.png");
-images.new("player_face", "player_face.png");
-images.new("player_arm", "player_arm.png");
-images.new("player_foot", "player_foot.png");
-images.new("player_hair", "player_hair.png");
-images.new("player_hand", "player_hand.png");
-images.new("player_head", "player_head.png");
-images.new("player_leg", "player_leg.png");
-sounds.source = "https://raw.githubusercontent.com/Dredarker/game-server/52add8b1507e8e41811bd7c1cc9fa6f18b5d899e/client/snd/";
+const sourceid = "2c1c9eb501347de4b1ee8a0880fdf4946654c4ea";
+images.source = `https://raw.githubusercontent.com/Dredarker/game-server/${sourceid}/client/img/`;
+images.new("player_body", "body.png");
+images.new("player_face", "face.png");
+images.new("player_arm", "arm.png");
+images.new("player_foot", "foot.png");
+images.new("player_hair", "hair.png");
+images.new("player_hand", "hand.png");
+images.new("player_head", "head.png");
+images.new("player_leg", "leg.png");
+sounds.source = `https://raw.githubusercontent.com/Dredarker/game-server/${sourceid}/client/snd/`;
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -174,11 +204,15 @@ const camera = {x: 0, y: 0};
 let console_password = localStorage.getItem("console_password") ?? "";
 let console_mode = {mode: ""};
 
+let myframes = 0;
+let fbss = 0;
+
 let mouseX = 0;
 let mouseY = 0;
 document.onmousemove = () => {mouseX = event.clientX; mouseY = event.clientY}
 
 let objects = new Map();
+let oldObjects = new Map();
 
 document.addEventListener("keydown", (e) => {
 	if (!canvas.focused) return;
@@ -194,6 +228,10 @@ document.addEventListener("keydown", (event) => {
 			let args = inputvalue.split(" ");
 			if (args[0] == "/run") {
 				sendtows({type: "console", msg: inputvalue.slice(5), password: console_password})
+			} else if (args[0] == "/crun") {
+				let result;
+				try {result = eval(inputvalue.slice(6))} catch (err) {result = err}
+				messageToChat(result);
 			} else if (args[0] == "/pass") {
 				console_password = inputvalue.slice(6);
 				localStorage.setItem("console_password", console_password);
@@ -212,7 +250,7 @@ document.addEventListener("keydown", (event) => {
 						console_mode.objmode = args[4];
 						console_mode.objtype = args[5];
 					}
-					messageToChat(`Установлен режим консоля на ${console_mode.mode}`, "#aaaaaa")
+					messageToChat(`Set console mode to ${console_mode.mode}`, "#aaaaaa")
 				}
 			} else if (args[0] == "/tp") {
 				let cmd;
@@ -250,23 +288,40 @@ ws.onopen = (e) => {
 	sendtows({
 		type: "join",
 		nickname: document.getElementById("nicknameInput").value,
+		color: {
+			hair: colorHairInput.value,
+			skin: colorSkinInput.value,
+			body: colorBodyInput.value,
+			leg: colorLegInput.value,
+			foot: colorFootInput.value,
+		},
 	});
 	gameLoop();
 };
 ws.onmessage = (event) => {
 	let json = JSON.parse(event.data);
 	try {
-		if (json.type == "init") myData.id = json.clientId;
-		if (json.type == "sync") {
-			objects = new Map(Object.entries(json.world));
+		if (json.type == "init") {
+			myData.id = json.clientId;
+			myData.nickname = json.nickname;
+		} else if (json.type == "sync") {
+			fbss = 0;
+			if (objects.size>0) {
+				oldObjects = objects;
+				objects = new Map(Object.entries(json.world));
+			} else {
+				oldObjects = new Map(Object.entries(json.world));
+				objects = oldObjects;
+			}
 			objects.forEach((obj, id) => {
 				if (id === myData.id) {
 					myData.x = obj.x;
 					myData.y = obj.y;
+					myData.width = obj.width;
+					myData.height = obj.height;
 				}
 			});
-		}
-		if (json.type == "msg") {
+		} else if (json.type == "msg") {
 			messageToChat(`${json.from ? json.from+": " : ""} ${json.text}`);
 		};
 	} catch (err) {console.error(err)};
@@ -316,6 +371,10 @@ gameCanvas.onclick = () => {
 	}
 };
 
+function lerp(val1, val2, factor) {// спасибо Who?
+	return val1 + (val2 - val1) * factor;
+}
+
 function posInObj(x, y, obj) {
 	return (
 		x < obj.x + obj.width &&
@@ -325,9 +384,14 @@ function posInObj(x, y, obj) {
 	)
 }
 
+function getDistance(x1, y1, x2, y2) {
+	return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+}
+
 function messageToChat(text, color = "white") {
-	let message = document.createElement("div");
-	message.innerHTML = "<p style='color:"+color+"'>"+text+"</p>";
+	let message = document.createElement("p");
+	message.style.color = color;
+	message.textContent = text;
 	document.getElementById("chatBox").append(message);
 	chatBox.scrollTop = 999999999;
 }
@@ -337,17 +401,20 @@ function sendtows(json) {
 	ws.send(JSON.stringify(json));
 }
 
-function drawImage(image, x, y, width = null, height = null, rotation, color = "#000000", isClipped = true) {
+function drawImage(image, x, y, width = 0, height = 0, rotation, color = "#000000", isClipped = true, isCenter = false, spritex = null, spritey = null) {
 	ctx.save();
-	let tx = isClipped * width + x;
-	ctx.translate(tx, y);
+	ctx.translate(x, y);
 	//ctx.translate(-ax, -y);
 	ctx.rotate((Math.PI/180)*rotation);
 	ctx.scale(isClipped ? -1 : 1, 1);
+	if (isCenter) {
+		spritex += -width/2;
+		spritey += -height/2;
+	}
 	try {
-		if (width && height) {ctx.drawImage(image, 0, 0, width, height)} else {ctx.drawImage(image, 0, 0)};
-		//ctx.fillStyle = color;
-		//ctx.fillRect(0, 0, width, height);
+		if (width && height) {ctx.drawImage(image, spritex, spritey, width, height)} else {ctx.drawImage(image, spritex, spritey)};
+		ctx.fillStyle = color;
+		ctx.fillRect(spritex, spritey, width, height);
 	} catch (err) {
 		ctx.fillStyle = "red";
 		ctx.fillRect(x, y, width, height);
@@ -355,9 +422,9 @@ function drawImage(image, x, y, width = null, height = null, rotation, color = "
 	ctx.restore();
 }
 
-window.myframes = 0;
 function update() {
 	myframes++;
+	fbss++;
 	canvas.width = document.documentElement.clientWidth;
 	canvas.height = document.documentElement.clientHeight;
 	document.getElementById("chat").style.bottom = -document.getElementById("gameCanvas").height+"px";
@@ -369,8 +436,8 @@ function update() {
 	});
 	objects.forEach((obj, id) => {
 		if (id === myData.id) {
-			camera.x += (((obj.x+obj.width/2)-canvas.width/2)-camera.x)/5;
-			camera.y += (((obj.y+obj.height/2)-canvas.height/2)-camera.y)/5;
+			camera.x += (((myData.visx+obj.width/2)-canvas.width/2)-camera.x)/6;
+			camera.y += (((myData.visy+obj.height/2)-canvas.height/2)-camera.y)/6;
 		}
 	});
 }
@@ -379,19 +446,84 @@ function draw() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	objects.forEach((obj, id) => {
+		let oldObj = oldObjects.get(id) ?? {};
+		let visualObj = {x: 0, y: 0};
+		if (!oldObj.x) oldObj.x = 0;
+		if (!oldObj.y) oldObj.y = 0;
+		visualObj.x = lerp(oldObj.x, obj.x, Math.min(fbss/5, 1));
+		visualObj.y = lerp(oldObj.y, obj.y, Math.min(fbss/5, 1));
 		if (obj.type === "player") {
 			if (id === myData.id) {
-				myData.syncx += (obj.x - myData.syncx) / 3;
-				myData.syncy += (obj.y - myData.syncy) / 3;
-				obj.x = myData.syncx;
-				obj.y = myData.syncy;
+				myData.visx = visualObj.x;
+				myData.visy = visualObj.y;
+			} else if (myData.esp) {
+				let distance = getDistance(myData.x, myData.y, obj.x, obj.y)/100;
+				ctx.save();
+				ctx.translate(canvas.width/2, canvas.height/2);
+				ctx.rotate(Math.atan2(obj.y-myData.y, obj.x-myData.x));
+				ctx.beginPath();
+				ctx.moveTo(60+distance, 0);
+				ctx.lineTo(40+distance, 10);
+				ctx.lineTo(40+distance, -10);
+				ctx.closePath();
+				ctx.fill();
+				ctx.restore();
 			}
 			if (obj.vx > 0) {obj.isClipped = true} else {obj.isClipped = false};
+			let vox = visualObj.x-camera.x+obj.width/2
+			let voy = visualObj.y-camera.y+obj.height/2
+			let hw = obj.width;
+			let hh = obj.height*0.3;
+			let hsy = -obj.width-4;
+
+			let bw = obj.width*0.8;
+			let bh = obj.height*0.4;
+
+			let lw = obj.width*0.4;
+			let lh = obj.height*0.34;
+
+			let fw = obj.width*0.65;
+			let fh = obj.height*0.1;
+
+			let aw = obj.width*0.35;
+			let ah = obj.height*0.35;
+
+			let hdw = obj.width*0.35;
+			let hdh = obj.height*0.55;
+
+			let rotik = 0;
+			let rotik2 = 0;
+
+			if (obj.onGround) {
+				rotik = Math.sin(myframes/4)*obj.vx*3;
+				rotik2 = Math.sin((myframes+10)/4)*obj.vx*3;
+			} else {
+				rotik = Math.sin(myframes/20)*(obj.vx+obj.vy+10);
+				rotik2 = Math.sin((myframes+10)/20)*(obj.vx+obj.vy+10);
+			}
+
+			let transperent = "00";
+			drawImage(images.player_arm, vox, voy-14, aw, ah, rotik2, obj.color.body+transperent, obj.isClipped, true, 5, 12);
+			drawImage(images.player_hand, vox, voy-14, hdw, hdh, rotik2, obj.color.skin+transperent, obj.isClipped, true, 5, 6);
+			drawImage(images.player_leg, vox, voy, lw, lh, -rotik+obj.vx, obj.color.leg+transperent, obj.isClipped, true, -2, -hsy-2);
+			drawImage(images.player_foot, vox, voy, fw, fh, -rotik+obj.vx, obj.color.foot+transperent, obj.isClipped, true, -3, -hsy+8);
+			drawImage(images.player_body, vox, voy, bw, bh, obj.vx, obj.color.body+transperent, obj.isClipped, true, 1, -4);
+			drawImage(images.player_head, vox, voy, hw, hh, obj.vx, obj.color.skin+transperent, obj.isClipped, true, 0, hsy);
+			drawImage(images.player_hair, vox, voy, hw, hh, obj.vx, obj.color.hair+transperent, obj.isClipped, true, 0, hsy);
+			drawImage(images.player_face, vox, voy, hw, hh, obj.vx, "#00000000", obj.isClipped, true, 0, hsy);
+			drawImage(images.player_leg, vox, voy, lw, lh, rotik+obj.vx, obj.color.leg+transperent, obj.isClipped, true, 6, -hsy-2);
+			drawImage(images.player_foot, vox, voy, fw, fh, rotik+obj.vx, obj.color.foot+transperent, obj.isClipped, true, 3, -hsy+8);
+			drawImage(images.player_arm, vox, voy-14, aw, ah, -rotik2, obj.color.body+transperent, obj.isClipped, true, 5, 12);
+			drawImage(images.player_hand, vox, voy-14, hdw, hdh, -rotik2, obj.color.skin+transperent, obj.isClipped, true, 5, 6);
+
+			// ctx.fillStyle = "#0000ff80";
+			// ctx.fillRect(obj.x-camera.x, obj.y-camera.y, obj.width, obj.height);
+			/*
 			handclip = -10*obj.isClipped;
 			legclip = -5*obj.isClipped;
 
 			let armH = obj.height;
-			let eax = (100-armH)/2;
+			let eax = 0*(100-armH);
 
 			let tmprotik = Math.sin(myframes*Math.round(obj.vx)/20)*obj.vx;
 			let rotik = obj.onGround ? tmprotik : obj.vy/2+10;
@@ -400,8 +532,12 @@ function draw() {
 			let ygrek = Math.sin(myframes/30)*2;
 			let ygrek2 = Math.sin((myframes+10)/30)*2;
 
-			let width2 = (obj.width-40)/2;
-			let width = 25+obj.width-40;
+			width2 = (obj.width-40)/2;
+			width = obj.width;
+			function widthF(widthF) {
+				width2 = (widthF)/2;
+				width = widthF;
+			}
 
 			drawImage(images.player_leg, obj.x-camera.x+10+legclip, obj.y-camera.y, width, obj.height, -rotik, `${obj.colorLeg}`, obj.isClipped);
 			drawImage(images.player_foot, obj.x-camera.x+10+legclip, obj.y-camera.y, width, obj.height, -rotik, `${obj.colorFoot}`, obj.isClipped);
@@ -409,25 +545,26 @@ function draw() {
 			drawImage(images.player_hand, obj.x-camera.x+15+handclip, obj.y-camera.y-20+ygrek2+eax, width, obj.height, rotik, `${obj.colorSkin}`, obj.isClipped);
 			drawImage(images.player_leg, obj.x-camera.x+15+legclip, obj.y-camera.y, width, obj.height, rotik, `${obj.colorLeg}`, obj.isClipped);
 			drawImage(images.player_foot, obj.x-camera.x+15+legclip, obj.y-camera.y, width, obj.height, rotik, `${obj.colorFoot}`, obj.isClipped);
-			drawImage(images.player_body, obj.x-camera.x+10, obj.y-camera.y+ygrek, width, obj.height, obj.vx/3, `${obj.colorBody}`, obj.isClipped);
-			drawImage(images.player_head, obj.x-camera.x-10+width2, obj.y-camera.y-5+ygrek, 65, 100, obj.vx/3, `${obj.colorSkin}`, obj.isClipped);
-			drawImage(images.player_face, obj.x-camera.x-10+width2, obj.y-camera.y-5+ygrek, 65, 100, obj.vx/3, "#000000", obj.isClipped);
-			drawImage(images.player_hair, obj.x-camera.x+5+width2, obj.y-camera.y-5+ygrek, 35, 100, obj.vx/3, `${obj.color}`, obj.isClipped);
+			drawImage(images.player_body, obj.x-camera.x+10+width2, obj.y-camera.y+ygrek, width, obj.height, obj.vx/3, `${obj.colorBody}`, obj.isClipped);
+			drawImage(images.player_head, obj.x-camera.x-10+width2, obj.y-camera.y-8+ygrek, width+40, obj.height, obj.vx/3, `${obj.colorSkin}`, obj.isClipped);
+			drawImage(images.player_face, obj.x-camera.x-10+width2, obj.y-camera.y-8+ygrek, width+40, obj.height, obj.vx/3, "#000000", obj.isClipped);
+			drawImage(images.player_hair, obj.x-camera.x+5+width2, obj.y-camera.y-8+ygrek, width+10, obj.height, obj.vx/3, `${obj.color}`, obj.isClipped);
 			drawImage(images.player_arm, obj.x-camera.x+15+handclip, obj.y-camera.y-20+ygrek2+eax, width, armH, -rotik2, `${obj.colorBody}`, obj.isClipped);
 			drawImage(images.player_hand, obj.x-camera.x+15+handclip, obj.y-camera.y-20+ygrek2+eax, width, obj.height, -rotik2, `${obj.colorSkin}`, obj.isClipped);
-
+			*/
+			
 			ctx.fillStyle = obj.color;
 			ctx.font = "20px arial";
 			ctx.textAlign = "center";
-			ctx.fillText(obj.nickname, (obj.x+obj.width/2)-camera.x, (obj.y-10)-camera.y)
+			ctx.fillText(obj.nickname, (visualObj.x+obj.width/2)-camera.x, (visualObj.y-10)-camera.y)
 		} else if (obj.type === "text") {
 			ctx.fillStyle = obj.textColor;
 			ctx.font = "20px arial";
 			ctx.textAlign = "center";
-			ctx.fillText(obj.text, obj.x-camera.x, obj.y-camera.y)
+			ctx.fillText(obj.text, visualObj.x-camera.x, visualObj.y-camera.y)
 		} else {
 			ctx.fillStyle = obj.color;
-			ctx.fillRect(obj.x-camera.x, obj.y-camera.y, obj.width, obj.height);
+			ctx.fillRect(visualObj.x-camera.x, visualObj.y-camera.y, obj.width, obj.height);
 		}
 	});
 
