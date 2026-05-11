@@ -399,7 +399,7 @@ wss.on("connection", (ws, req) => {
 
 			if (data.objtype == "platform") {
 				width = 50;
-				height = 25;
+				height = 10;
 				color = "gray";
 			} else {
 				width = 50;
@@ -408,7 +408,6 @@ wss.on("connection", (ws, req) => {
 
 			let x = objects.get(myid).x + objects.get(myid).width/2 + clients.get(myid).mouseX;
 			let y = objects.get(myid).y + objects.get(myid).height/2 + clients.get(myid).mouseY;
-
 			x = Math.floor(x/width)*height;
 			y = Math.floor(y/width)*height;
 
