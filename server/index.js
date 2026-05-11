@@ -399,7 +399,7 @@ wss.on("connection", (ws, req) => {
 
 			if (data.objtype == "platform") {
 				width = 50;
-				height = 12.5;
+				height = 25;
 				color = "gray";
 			} else {
 				width = 50;
