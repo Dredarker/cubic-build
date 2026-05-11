@@ -58,26 +58,33 @@
 			justify-content: center;
 			align-items: center;
 		}
+		#inventory {
+			background: #777777aa;
+			position: absolute;
+			margin: 8px;
+			bottom: 0px;
+			right: 0px;
+			width: 200px;
+			height: 60px;
+		}
 		p {
 			font-family: arial;
 			margin-block-start: 2px;
 			margin-block-end: 2px;
 		}
-		a {
-			font-family: arial;
-		}
-		i {
-			font-family: arial;
-		}
-		b {
-			font-family: arial;
-		}
+		a {font-family: arial;}
+		i {font-family: arial;}
+		b {font-family: arial;}
 		#title {
 			font-size: 48px;
 		}
 		.colume {
 			text-align: center;
-			margin: 32px
+			margin: 32px;
+		}
+		.item {
+			cursor: pointer;
+			font-size: 30px;
 		}
   </style>
 </head>
@@ -87,6 +94,10 @@
 		<div id="chat">
 			<div id="chatBox"></div>
 			<input id="chatInput"/>
+		</div>
+		<div id="inventory">
+			<p class="inline item" item="box">Box</p>
+			<p class="inline item" item="platform">Platform</p>
 		</div>
 	</div>
 	<div id="menu">
@@ -132,16 +143,17 @@
 </body>
 
 <script>
+let maxfbss = 0;
 nicknameInput.placeholder = "Nickname";
-var gameVersion = [0, 2, 1];
+var gameVersion = [0, 2, 2];
 version.innerHTML = "v"+gameVersion.join(".");
 
-colorEdit.style.display = "none";
-document.querySelector("#menu > div > div:nth-child(1) > div:nth-child(2) > b").innerText = "Colors will be soon";
-
+game.style.display = "none";
 menu.style.width = "500px";
 menu.style.height = "400px";
 menu.style.left = (document.documentElement.clientWidth/2 - parseInt(menu.style.width)/2)+"px";
+
+document.getElementById("inventory").style.bottom = -document.documentElement.clientHeight+"px";
 
 chatInput.maxLength = 250;
 nicknameInput.maxLength = 20;
@@ -150,6 +162,12 @@ function runGame() {
 if (!(nicknameInput.value.length >= 3 && nicknameInput.value.length <= 20)) {
 	error.innerHTML = "Nickname's length need be 3 - 20";
 	return;
+}
+
+for (let elem of document.getElementsByClassName("item")) {
+	elem.onclick = () => {
+		myData.objtype = elem.getAttribute("item");
+	};
 }
 
 menu.style.display = "none";
@@ -166,18 +184,18 @@ sounds.new = (name, source) => {
 }
 
 const helpBook = [
-	"Помощь:",
+	"Command Help:",
 	"/run (code) - executes code in server (A)",
 	"/crun (code) - executes code in client",
 	"/pass (password) - sets console password",
 	"/mode (mode) ... - selects console mode (A)",
-	"/tp (pos)|(nickname) (nickname|pos)] - teleports you/player to position/player (A)",
+	"/tp <(pos)|[(nickname) (nickname|pos)]> - teleports you/player to position/player (A)",
 	"/kick (nickname) - kicks player (A)",
 	"--------------------------------------------------------------------",
 	"A - Requests console password",
 ];
 
-const myData = {id: "", x: 0, y: 0, width: 0, height: 0, syncx: 0, syncy: 0, visx: 0, visy: 0, esp: false};
+const myData = {id: "", x: 0, y: 0, width: 0, height: 0, syncx: 0, syncy: 0, visx: 0, visy: 0, esp: false, objtype: "box"};
 const myObject = {};
 
 const sourceid = "2c1c9eb501347de4b1ee8a0880fdf4946654c4ea";
@@ -266,7 +284,7 @@ document.addEventListener("keydown", (event) => {
 				sendtows({type: "console", msg: cmd, password: console_password})
 			} else if (args[0] == "/kick") {
 				sendtows({type: "console", msg: `
-					clients.forEach((client, id) => {if (client.nickname == "${args[1]}") client.ws.close(4021)})
+					clients.forEach((client, id) => {if (client.nickname == "${args[1]}") client.ws.terminate(4021)})
 				`, password: console_password})
 			} else if (args[0] == "/...") {
 				sendtows({type: "console", msg: `
@@ -296,6 +314,7 @@ ws.onopen = (e) => {
 			foot: colorFootInput.value,
 		},
 	});
+	game.style.display = "block";
 	gameLoop();
 };
 ws.onmessage = (event) => {
@@ -305,6 +324,7 @@ ws.onmessage = (event) => {
 			myData.id = json.clientId;
 			myData.nickname = json.nickname;
 		} else if (json.type == "sync") {
+			maxfbss = fbss;
 			fbss = 0;
 			if (objects.size>0) {
 				oldObjects = objects;
@@ -339,8 +359,8 @@ gameCanvas.oncontextmenu = () => {
 		let x = camera.x + mouseX;
 		let y = camera.y + mouseY;
 		let minimal = Math.min(console_mode.width, console_mode.width);
-		x = Math.floor(x / minimal) * minimal;
-		y = Math.floor(y / minimal) * minimal;
+		x = Math.floor(x/minimal)*minimal;
+		y = Math.floor(y/minimal)*minimal;
 		sendtows({
 			type: "console",
 			msg: `objects.set(Math.floor(Math.random() * 100000), new Obj(${x}, ${y}, ${console_mode.width}, ${console_mode.height}, ${console_mode.objmode}, ${console_mode.objtype}))`,
@@ -348,7 +368,8 @@ gameCanvas.oncontextmenu = () => {
 		});
 	} else {
 		sendtows({
-			type: "i_build"
+			type: "i_build",
+			objtype: myData.objtype
 		});
 	};
 	return false;
@@ -450,8 +471,8 @@ function draw() {
 		let visualObj = {x: 0, y: 0};
 		if (!oldObj.x) oldObj.x = 0;
 		if (!oldObj.y) oldObj.y = 0;
-		visualObj.x = lerp(oldObj.x, obj.x, Math.min(fbss/5, 1));
-		visualObj.y = lerp(oldObj.y, obj.y, Math.min(fbss/5, 1));
+		visualObj.x = lerp(oldObj.x, obj.x, Math.min(fbss/maxfbss, 1));
+		visualObj.y = lerp(oldObj.y, obj.y, Math.min(fbss/maxfbss, 1));
 		if (obj.type === "player") {
 			if (id === myData.id) {
 				myData.visx = visualObj.x;
@@ -496,25 +517,25 @@ function draw() {
 
 			if (obj.onGround) {
 				rotik = Math.sin(myframes/4)*obj.vx*3;
-				rotik2 = Math.sin((myframes+10)/4)*obj.vx*3;
+				rotik2 = Math.sin((myframes+2)/4)*obj.vx*3;
 			} else {
 				rotik = Math.sin(myframes/20)*(obj.vx+obj.vy+10);
 				rotik2 = Math.sin((myframes+10)/20)*(obj.vx+obj.vy+10);
 			}
 
-			let transperent = "00";
-			drawImage(images.player_arm, vox, voy-14, aw, ah, rotik2, obj.color.body+transperent, obj.isClipped, true, 5, 12);
-			drawImage(images.player_hand, vox, voy-14, hdw, hdh, rotik2, obj.color.skin+transperent, obj.isClipped, true, 5, 6);
-			drawImage(images.player_leg, vox, voy, lw, lh, -rotik+obj.vx, obj.color.leg+transperent, obj.isClipped, true, -2, -hsy-2);
-			drawImage(images.player_foot, vox, voy, fw, fh, -rotik+obj.vx, obj.color.foot+transperent, obj.isClipped, true, -3, -hsy+8);
+			let transperent = "e0";
+			drawImage(images.player_arm, vox, voy-14, aw, ah, -rotik2, obj.color.body+transperent, obj.isClipped, true, 5, 12);
+			drawImage(images.player_hand, vox, voy-14, hdw, hdh, -rotik2, obj.color.skin+transperent, obj.isClipped, true, 5, 6);
+			drawImage(images.player_leg, vox, voy, lw, lh, rotik+obj.vx, obj.color.leg+transperent, obj.isClipped, true, -2, -hsy-2);
+			drawImage(images.player_foot, vox, voy, fw, fh, rotik+obj.vx, obj.color.foot+transperent, obj.isClipped, true, -3, -hsy+8);
 			drawImage(images.player_body, vox, voy, bw, bh, obj.vx, obj.color.body+transperent, obj.isClipped, true, 1, -4);
 			drawImage(images.player_head, vox, voy, hw, hh, obj.vx, obj.color.skin+transperent, obj.isClipped, true, 0, hsy);
 			drawImage(images.player_hair, vox, voy, hw, hh, obj.vx, obj.color.hair+transperent, obj.isClipped, true, 0, hsy);
 			drawImage(images.player_face, vox, voy, hw, hh, obj.vx, "#00000000", obj.isClipped, true, 0, hsy);
-			drawImage(images.player_leg, vox, voy, lw, lh, rotik+obj.vx, obj.color.leg+transperent, obj.isClipped, true, 6, -hsy-2);
-			drawImage(images.player_foot, vox, voy, fw, fh, rotik+obj.vx, obj.color.foot+transperent, obj.isClipped, true, 3, -hsy+8);
-			drawImage(images.player_arm, vox, voy-14, aw, ah, -rotik2, obj.color.body+transperent, obj.isClipped, true, 5, 12);
-			drawImage(images.player_hand, vox, voy-14, hdw, hdh, -rotik2, obj.color.skin+transperent, obj.isClipped, true, 5, 6);
+			drawImage(images.player_leg, vox, voy, lw, lh, -rotik+obj.vx, obj.color.leg+transperent, obj.isClipped, true, 6, -hsy-2);
+			drawImage(images.player_foot, vox, voy, fw, fh, -rotik+obj.vx, obj.color.foot+transperent, obj.isClipped, true, 3, -hsy+8);
+			drawImage(images.player_arm, vox, voy-14, aw, ah, rotik2, obj.color.body+transperent, obj.isClipped, true, 5, 12);
+			drawImage(images.player_hand, vox, voy-14, hdw, hdh, rotik2, obj.color.skin+transperent, obj.isClipped, true, 5, 6);
 
 			// ctx.fillStyle = "#0000ff80";
 			// ctx.fillRect(obj.x-camera.x, obj.y-camera.y, obj.width, obj.height);
