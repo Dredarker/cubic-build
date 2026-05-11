@@ -396,9 +396,7 @@ wss.on("connection", (ws, req) => {
 		};
 
 		if (data.type === "i_build") {
-			if (!["box", "platform"].includes(data.objtype)) return;
-			let x = objects.get(myid).x + objects.get(myid).width/2 + clients.get(myid).mouseX;
-			let y = objects.get(myid).y + objects.get(myid).height/2 + clients.get(myid).mouseY;
+			if (!["box", "platform"].includes(data.objtype)) return
 			let width = 0;
 			let height = 0;
 			let color = "black";
@@ -412,12 +410,15 @@ wss.on("connection", (ws, req) => {
 				height = 50;
 			}
 
+			let x = objects.get(myid).x + objects.get(myid).width/2 + clients.get(myid).mouseX;
+			let y = objects.get(myid).y + objects.get(myid).height/2 + clients.get(myid).mouseY;
+
 			x = Math.floor(x/width)*height;
 			y = Math.floor(y/width)*height;
 
 			let cursorInObjs = false;
 			objects.forEach((obj, id) => {
-				if (posInObj(x+25, y+25, obj)) {cursorInObjs = true};
+				if (posInObj(x+width/2, y+height/2, obj)) {cursorInObjs = true};
 			});
 			if (!cursorInObjs) objects.set(Math.floor(Math.random() * 100000), new Obj(x, y, width, height, "static", data.objtype, color));
 		};
