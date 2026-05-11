@@ -238,9 +238,7 @@ function gameLoop() {
 			msg("", clients, err);
 		}
 	}
-
 	update();
-
 	if (iferrorframestotryagain <= 0) {
 		try {customUpdate()} catch (err) {
 			iferrorframestotryagain = 15*fps;
@@ -398,16 +396,30 @@ wss.on("connection", (ws, req) => {
 		};
 
 		if (data.type === "i_build") {
+			if (!["box", "platform"].includes(data.objtype)) return;
 			let x = objects.get(myid).x + objects.get(myid).width/2 + clients.get(myid).mouseX;
 			let y = objects.get(myid).y + objects.get(myid).height/2 + clients.get(myid).mouseY;
-			x = Math.floor(x/50)*50;
-			y = Math.floor(y/50)*50;
+			let width = 0;
+			let height = 0;
+			let color = "black";
+
+			if (data.objtype == "platform") {
+				width = 50;
+				height = 25;
+				color = "gray";
+			} else {
+				width = 50;
+				height = 50;
+			}
+
+			x = Math.floor(x/width)*height;
+			y = Math.floor(y/width)*height;
 
 			let cursorInObjs = false;
 			objects.forEach((obj, id) => {
 				if (posInObj(x+25, y+25, obj)) {cursorInObjs = true};
 			});
-			if (!cursorInObjs) objects.set(Math.floor(Math.random() * 100000), new Obj(x, y, 50, 50, "static", "box"));
+			if (!cursorInObjs) objects.set(Math.floor(Math.random() * 100000), new Obj(x, y, width, height, "static", data.objtype, color));
 		};
   });
 
