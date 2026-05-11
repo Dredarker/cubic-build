@@ -229,7 +229,7 @@ let iferrorframestotryagain = 0;
 let fps = 60;
 
 function gameLoop() {
-	framestosync = Math.ceil(objects.size/10);
+	framestosync = Math.floor((objects.size+3)/5);
 	frames++;
 
 	if (iferrorframestotryagain <= 0) {
@@ -260,14 +260,11 @@ wss.on("connection", (ws, req) => {
 
   if (bannedIps.has(ip)) {
     console.log(`Blocked connection from banned IP: ${ip}`);
-
     ws.send(JSON.stringify({
       type: "error",
       message: "ip-ban"
     }));
-
-    ws.close();
-
+    ws.terminate();
     return;
   }
 
@@ -302,7 +299,7 @@ wss.on("connection", (ws, req) => {
 					if (clientData.ws === ws) {
 						let nickname = data.nickname;
 						if (!(nickname.length >= 3 && nickname.length <= 20)) {
-							ws.close(2011);
+							ws.terminate();
 							return;
 						}
 
@@ -326,7 +323,7 @@ wss.on("connection", (ws, req) => {
 					}
       	}
 			} else {
-				ws.close(2002);
+				ws.terminate();
 			}
     };
 
@@ -356,7 +353,7 @@ wss.on("connection", (ws, req) => {
 				for (let filterword of badwords) {str = str.replace(new RegExp(filterword, "ig"), "***")};
 				msg(clients.get(myid).nickname, clients, str);
 			} else {
-				ws.close(2012);
+				ws.terminate(2012);
 			}
 		}
 
@@ -366,7 +363,6 @@ wss.on("connection", (ws, req) => {
         for (let i of clients.keys()) {
           clientsIds.push(i);
         }
-
         ws.send(JSON.stringify({
           type: "getclients",
           text: clientsIds
