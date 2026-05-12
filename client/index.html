@@ -73,7 +73,7 @@
 			margin: 8px;
 			bottom: 0px;
 			right: 0px;
-			width: 200px;
+			width: 300px;
 			height: 60px;
 		}
 		p {
@@ -159,7 +159,7 @@
 <script>
 let maxfbss = 0;
 nicknameInput.placeholder = "Nickname";
-var gameVersion = [0, 2, 2];
+var gameVersion = [0, 3, 0];
 version.innerHTML = "v"+gameVersion.join(".");
 
 game.style.display = "none";
@@ -198,7 +198,7 @@ images.new = (name, source) => {
 }
 const sounds = {};
 sounds.new = (name, source) => {
-	sounds[name] = {};
+	sounds[name] = new Sound();
 	sounds[name].src = sounds.source+source;
 }
 
@@ -214,7 +214,7 @@ const helpBook = [
 	"A - Requests console password",
 ];
 
-const myData = {id: "", x: 0, y: 0, width: 0, height: 0, syncx: 0, syncy: 0, visx: 0, visy: 0, esp: false, objtype: "box"};
+const myData = {id: "", x: 0, y: 0, width: 0, height: 0, syncx: 0, syncy: 0, visx: 0, visy: 0, esp: false, objtype: "box", health: 0};
 const myObject = {};
 
 const sourceid = "2c1c9eb501347de4b1ee8a0880fdf4946654c4ea";
@@ -358,6 +358,7 @@ ws.onmessage = (event) => {
 					myData.y = obj.y;
 					myData.width = obj.width;
 					myData.height = obj.height;
+					myData.health = obj.hp;
 				}
 			});
 		} else if (json.type == "msg") {
@@ -366,7 +367,7 @@ ws.onmessage = (event) => {
 	} catch (err) {console.error(err)};
 };
 ws.onclose = (event) => {
-	showError("Disconnected", "You are disconnected from game, "+event.code+". Restart page.")
+	showError("Disconnected", "You are disconnected from game, code: "+event.code+". Restart page.")
 };
 
 gameCanvas.oncontextmenu = () => {
@@ -455,6 +456,16 @@ function drawImage(image, x, y, width = 0, height = 0, rotation, color = "#00000
 		ctx.fillStyle = "red";
 		ctx.fillRect(x, y, width, height);
 	};
+	ctx.restore();
+}
+
+function drawText(text, x, y, color = "white", font = "12px arial", textAlign = "center", textBaseline = "middle") {
+	ctx.save();
+	ctx.fillStyle = color;
+	ctx.font = font;
+	ctx.textAlign = textAlign;
+	ctx.textBaseline = textBaseline;
+	ctx.fillText(text, x, y);
 	ctx.restore();
 }
 
@@ -580,6 +591,13 @@ function draw() {
 		ctx.fillStyle = "#00000040";
 		ctx.fillRect(x+10, y+10, console_mode.width/2, console_mode.height/2);
 	}
+
+	ctx.fillStyle = "#77777780";
+	ctx.fillRect(canvas.width-8, canvas.height-100, -300, 24);
+	ctx.fillStyle = "red";
+	ctx.fillRect(canvas.width-8, canvas.height-100, Math.max(0, myData.health)*-3, 24);
+
+	drawText("Health", canvas.width-10, canvas.height-100+12, "white", "24px arial", "right", "middle");
 }
 
 function gameLoop() {
