@@ -51,8 +51,17 @@
 		#menu {
 			background: #77777777;
 			position: absolute;
-			top: 25%;
 			border: #404040 solid 4px;
+			display: inline-flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+		#errorPage {
+			word-wrap: break-word;
+			background: #77202077;
+			position: absolute;
+			border: #401010 solid 4px;
 			display: inline-flex;
 			flex-direction: column;
 			justify-content: center;
@@ -77,6 +86,9 @@
 		b {font-family: arial;}
 		#title {
 			font-size: 48px;
+		}
+		.smallTitle {
+			font-size: 36px;
 		}
 		.colume {
 			text-align: center;
@@ -140,6 +152,8 @@
 			</div>
 		</div>
 	</div>
+	<div id="errorPage">
+	</div>
 </body>
 
 <script>
@@ -152,6 +166,11 @@ game.style.display = "none";
 menu.style.width = "500px";
 menu.style.height = "400px";
 menu.style.left = (document.documentElement.clientWidth/2 - parseInt(menu.style.width)/2)+"px";
+menu.style.top = (document.documentElement.clientHeight/2 - parseInt(menu.style.height)/2)+"px";
+
+errorPage.style.display = "none";
+errorPage.style.width = "400px";
+errorPage.style.padding = "32px"
 
 document.getElementById("inventory").style.bottom = -document.documentElement.clientHeight+"px";
 
@@ -347,11 +366,7 @@ ws.onmessage = (event) => {
 	} catch (err) {console.error(err)};
 };
 ws.onclose = (event) => {
-	if (event.code == 1006) messageToChat("Connection is corruped", "red")
-	else if (event.code == 1005) messageToChat("You disconnected from game", "red")
-	else messageToChat("You are disconnected from game, "+event.code, "red");
-	messageToChat("Page will restart in 5 seconds...", "red");
-	setTimeout(() => {location.reload()}, 5000);
+	showError("Disconnected", "You are disconnected from game, "+event.code+". Restart page.")
 };
 
 gameCanvas.oncontextmenu = () => {
@@ -537,43 +552,6 @@ function draw() {
 			drawImage(images.player_arm, vox, voy-14, aw, ah, rotik2, obj.color.body+transperent, obj.isClipped, true, 5, 12);
 			drawImage(images.player_hand, vox, voy-14, hdw, hdh, rotik2, obj.color.skin+transperent, obj.isClipped, true, 5, 6);
 
-			// ctx.fillStyle = "#0000ff80";
-			// ctx.fillRect(obj.x-camera.x, obj.y-camera.y, obj.width, obj.height);
-			/*
-			handclip = -10*obj.isClipped;
-			legclip = -5*obj.isClipped;
-
-			let armH = obj.height;
-			let eax = 0*(100-armH);
-
-			let tmprotik = Math.sin(myframes*Math.round(obj.vx)/20)*obj.vx;
-			let rotik = obj.onGround ? tmprotik : obj.vy/2+10;
-			let tmprotik2 = Math.sin((myframes+8)*Math.round(obj.vx)/20)*obj.vx;
-			let rotik2 = obj.onGround ? tmprotik2 : obj.vy/2+10;
-			let ygrek = Math.sin(myframes/30)*2;
-			let ygrek2 = Math.sin((myframes+10)/30)*2;
-
-			width2 = (obj.width-40)/2;
-			width = obj.width;
-			function widthF(widthF) {
-				width2 = (widthF)/2;
-				width = widthF;
-			}
-
-			drawImage(images.player_leg, obj.x-camera.x+10+legclip, obj.y-camera.y, width, obj.height, -rotik, `${obj.colorLeg}`, obj.isClipped);
-			drawImage(images.player_foot, obj.x-camera.x+10+legclip, obj.y-camera.y, width, obj.height, -rotik, `${obj.colorFoot}`, obj.isClipped);
-			drawImage(images.player_arm, obj.x-camera.x+15+handclip, obj.y-camera.y-20+ygrek2+eax, width, armH, rotik, `${obj.colorBody}`, obj.isClipped);
-			drawImage(images.player_hand, obj.x-camera.x+15+handclip, obj.y-camera.y-20+ygrek2+eax, width, obj.height, rotik, `${obj.colorSkin}`, obj.isClipped);
-			drawImage(images.player_leg, obj.x-camera.x+15+legclip, obj.y-camera.y, width, obj.height, rotik, `${obj.colorLeg}`, obj.isClipped);
-			drawImage(images.player_foot, obj.x-camera.x+15+legclip, obj.y-camera.y, width, obj.height, rotik, `${obj.colorFoot}`, obj.isClipped);
-			drawImage(images.player_body, obj.x-camera.x+10+width2, obj.y-camera.y+ygrek, width, obj.height, obj.vx/3, `${obj.colorBody}`, obj.isClipped);
-			drawImage(images.player_head, obj.x-camera.x-10+width2, obj.y-camera.y-8+ygrek, width+40, obj.height, obj.vx/3, `${obj.colorSkin}`, obj.isClipped);
-			drawImage(images.player_face, obj.x-camera.x-10+width2, obj.y-camera.y-8+ygrek, width+40, obj.height, obj.vx/3, "#000000", obj.isClipped);
-			drawImage(images.player_hair, obj.x-camera.x+5+width2, obj.y-camera.y-8+ygrek, width+10, obj.height, obj.vx/3, `${obj.color}`, obj.isClipped);
-			drawImage(images.player_arm, obj.x-camera.x+15+handclip, obj.y-camera.y-20+ygrek2+eax, width, armH, -rotik2, `${obj.colorBody}`, obj.isClipped);
-			drawImage(images.player_hand, obj.x-camera.x+15+handclip, obj.y-camera.y-20+ygrek2+eax, width, obj.height, -rotik2, `${obj.colorSkin}`, obj.isClipped);
-			*/
-			
 			ctx.fillStyle = obj.color;
 			ctx.font = "20px arial";
 			ctx.textAlign = "center";
@@ -609,6 +587,14 @@ function gameLoop() {
 	draw();
 	requestAnimationFrame(gameLoop);
 }
+}
+
+function showError(title, text) {
+	game.style.display = "none";
+	errorPage.innerHTML = `<b class="smallTitle">${title}</b><p>${text}</p>`;
+	errorPage.style.display = "inline-flex";
+	errorPage.style.left = (document.documentElement.clientWidth/2 - parseInt(errorPage.clientWidth)/2)+"px";
+	errorPage.style.top = (document.documentElement.clientHeight/2 - parseInt(errorPage.clientHeight)/2)+"px";
 }
 </script>
 </html>
