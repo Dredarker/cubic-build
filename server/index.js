@@ -75,6 +75,7 @@ function update() {
 				if (newCollisionModel) {
 				if (Math.abs(objRelativeX1) < Math.abs(objRelativeY1)) {
 					if (objRelativeY1 < 0) {
+						if (obj1.vy > 5) obj1.health -= obj1.vy;
 						if (obj1.mode == "dynamic") {obj2.vx = obj1.vx; obj2.vy = obj1.vy}
 						obj1.vy /= 4;
 						obj1.y = obj2.y - obj1.height;
@@ -150,7 +151,7 @@ function checkUnderCollision(obj) {
 	return boolean;
 }
 
-function Obj(x, y, width, height, mode, type, color = "black") {
+function Obj(x, y, width, height, mode, type, color = "black", health = 1/0) {
 	this.x = x;
 	this.y = y;
 	this.width = width;
@@ -160,6 +161,7 @@ function Obj(x, y, width, height, mode, type, color = "black") {
 	this.mode = mode;
 	this.type = type;
 	this.color = color;
+	this.health = health;
 	this.onGround = false;
 }
 
@@ -206,6 +208,7 @@ function server_sync() {
 		tmpobj.onGround = obj.onGround;
 		tmpobj.type = obj.type;
 		tmpobj.color = obj.color;
+		tmpobj.hp = obj.health;
 		if (obj.nickname) tmpobj.nickname = obj.nickname;
 		if (obj.text) tmpobj.text = obj.text;
 		if (obj.textColor) tmpobj.textColor = obj.textColor;
