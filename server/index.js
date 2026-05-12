@@ -75,7 +75,7 @@ function update() {
 				if (newCollisionModel) {
 				if (Math.abs(objRelativeX1) < Math.abs(objRelativeY1)) {
 					if (objRelativeY1 < 0) {
-						if (obj1.vy > 25) obj1.health -= obj1.vy;
+						if (obj1.vy > 12) obj1.health -= obj1.vy;
 						if (obj1.mode == "dynamic") {obj2.vx = obj1.vx; obj2.vy = obj1.vy}
 						obj1.vy /= 4;
 						obj1.y = obj2.y - obj1.height;
