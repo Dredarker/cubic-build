@@ -68,7 +68,7 @@
 			align-items: center;
 		}
 		#inventory {
-			background: #777777aa;
+			background: #77777777;
 			position: absolute;
 			margin: 8px;
 			bottom: 0px;
@@ -98,6 +98,32 @@
 			cursor: pointer;
 			font-size: 30px;
 		}
+		
+		#joystick-base {
+			position: fixed;
+			left: 40px;
+			bottom: 40px;
+
+			width: 160px;
+			height: 160px;
+
+			border-radius: 50%;
+			background: #77777777;
+			border: #404040 solid 4px;
+		}
+
+		#joystick-stick {
+			position: absolute;
+
+			width: 70px;
+			height: 70px;
+
+			left: 45px;
+			top: 45px;
+
+			border-radius: 50%;
+			background: #999999;
+		}
   </style>
 </head>
 <body>
@@ -110,6 +136,9 @@
 		<div id="inventory">
 			<p class="inline item" item="box">Box</p>
 			<p class="inline item" item="platform">Platform</p>
+		</div>
+		<div id="joystick-base">
+			<div id="joystick-stick"></div>
 		</div>
 	</div>
 	<div id="menu">
@@ -157,9 +186,70 @@
 </body>
 
 <script>
+let platform = getUserAgent();
+let isMobile = (platform == "Android" || platform == "iOS");
+
+const joystick = {
+    x: 0,
+    y: 0,
+	radius: 45,
+};
+
+const joystick_base = document.getElementById("joystick-base");
+const joystick_stick = document.getElementById("joystick-stick");
+if (isMobile) { //-------------------------------------for Mobile
+let dragging = false;
+
+function updateStick(x, y) {
+    const distance = Math.sqrt(x * x + y * y);
+
+    if (distance > joystick.radius) {
+        x = (x / distance) * joystick.radius;
+        y = (y / distance) * joystick.radius;
+    }
+
+    joystick_stick.style.transform = `translate(${x}px, ${y}px)`;
+
+    joystick.x = +(x / joystick.radius).toFixed(2);
+    joystick.y = +(-y / joystick.radius).toFixed(2);
+}
+
+function resetStick() {
+    joystick_stick.style.transform = `translate(0px, 0px)`;
+
+    joystick.x = 0;
+    joystick.y = 0;
+}
+
+joystick_base.addEventListener("pointerdown", (e) => {
+    dragging = true;
+});
+
+window.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+
+    const rect = joystick_base.getBoundingClientRect();
+
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const x = e.clientX - centerX;
+    const y = e.clientY - centerY;
+
+    updateStick(x, y);
+});
+
+window.addEventListener("pointerup", () => {
+    dragging = false;
+    resetStick();
+});
+} else {
+	joystick_base.style.display = "none";
+} //----------------------Mobile step end
+
 let maxfbss = 0;
 nicknameInput.placeholder = "Nickname";
-var gameVersion = [0, 3, 0];
+var gameVersion = [0, 3, 1];
 version.innerHTML = "v"+gameVersion.join(".");
 
 game.style.display = "none";
@@ -172,7 +262,7 @@ errorPage.style.display = "none";
 errorPage.style.width = "400px";
 errorPage.style.padding = "32px"
 
-document.getElementById("inventory").style.bottom = -document.documentElement.clientHeight+"px";
+inventory.style.bottom = isMobile ? -(60+48)+"px" : -document.documentElement.clientHeight+"px";
 
 chatInput.maxLength = 250;
 nicknameInput.maxLength = 20;
@@ -408,7 +498,7 @@ gameCanvas.onclick = () => {
 	}
 };
 
-function lerp(val1, val2, factor) {// спасибо Who?
+function lerp(val1, val2, factor) {// спасибо dfgre
 	return val1 + (val2 - val1) * factor;
 }
 
@@ -449,7 +539,8 @@ function drawImage(image, x, y, width = 0, height = 0, rotation, color = "#00000
 		spritey += -height/2;
 	}
 	try {
-		if (width && height) {ctx.drawImage(image, spritex, spritey, width, height)} else {ctx.drawImage(image, spritex, spritey)};
+		if (width && height) {ctx.drawImage(image, spritex, spritey, width, height)}
+		else {ctx.drawImage(image, spritex, spritey)};
 		ctx.fillStyle = color;
 		ctx.fillRect(spritex, spritey, width, height);
 	} catch (err) {
@@ -474,7 +565,9 @@ function update() {
 	fbss++;
 	canvas.width = document.documentElement.clientWidth;
 	canvas.height = document.documentElement.clientHeight;
-	document.getElementById("chat").style.bottom = -document.getElementById("gameCanvas").height+"px";
+
+	chat.style.bottom = isMobile ? -(chat.clientHeight+16)+"px" : -gameCanvas.height+"px";
+
 	sendtows({
 		type: "sync",
 		keys,
@@ -593,11 +686,17 @@ function draw() {
 	}
 
 	ctx.fillStyle = "#77777780";
-	ctx.fillRect(canvas.width-8, canvas.height-100, -300, 24);
-	ctx.fillStyle = "red";
-	ctx.fillRect(canvas.width-8, canvas.height-100, Math.max(0, myData.health)*-3, 24);
-
-	drawText("Health", canvas.width-10, canvas.height-100+12, "white", "24px arial", "right", "middle");
+	if (isMobile) {
+		ctx.fillRect(canvas.width-8, 8, -300, 24);
+		ctx.fillStyle = "red";
+		ctx.fillRect(canvas.width-8, 8, Math.max(0, myData.health)*-3, 24);
+		drawText("Health", canvas.width-10, 8+12, "white", "24px arial", "right", "middle");
+	} else {
+		ctx.fillRect(canvas.width-8, canvas.height-100, -300, 24);
+		ctx.fillStyle = "red";
+		ctx.fillRect(canvas.width-8, canvas.height-100, Math.max(0, myData.health)*-3, 24);
+		drawText("Health", canvas.width-10, canvas.height-100+12, "white", "24px arial", "right", "middle");
+	}
 }
 
 function gameLoop() {
@@ -609,10 +708,24 @@ function gameLoop() {
 
 function showError(title, text) {
 	game.style.display = "none";
-	errorPage.innerHTML = `<b class="smallTitle">${title}</b><p>${text}</p>`;
+	errorPage.innerHTML = "<b class='smallTitle'>"+title+"</b><p>"+text+"</p>";
 	errorPage.style.display = "inline-flex";
 	errorPage.style.left = (document.documentElement.clientWidth/2 - parseInt(errorPage.clientWidth)/2)+"px";
 	errorPage.style.top = (document.documentElement.clientHeight/2 - parseInt(errorPage.clientHeight)/2)+"px";
+}
+
+function getUserAgent() {
+	const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+	if (/android/i.test(userAgent)) {
+		return "Android";
+	} else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+		return "iOS";
+	} else if (/Win/i.test(userAgent)) {
+		return "Windows";
+	} else if (/Mac/i.test(userAgent)) {
+		return "MacOS";
+	}
+	return "Unknown";
 }
 </script>
 </html>
