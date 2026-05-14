@@ -301,17 +301,17 @@ wss.on("connection", (ws, req) => {
 				for (const [id, clientData] of clients.entries()) {
 					if (clientData.ws === ws) {
 						let nickname = data.nickname;
-						if (!(nickname.length >= 3 && nickname.length <= 20)) {
-							ws.terminate();
-							return;
-						}
-
 						let editNickname = "";
 						const search = `АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюяABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890!"№;%:?*()_+@#$^&-=.\\[]{}<>\`~`;
 						for (let i = 0; i < nickname.length; i++) {
 							if (search.includes(nickname[i])) editNickname += nickname[i];
 						}
 						nickname = editNickname;
+
+						if (!(nickname.length >= 3 && nickname.length <= 20)) {
+							ws.terminate();
+							return;
+						}
 
 						ws.send(JSON.stringify({
     					type: "init",
