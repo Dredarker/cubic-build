@@ -356,7 +356,7 @@ wss.on("connection", (ws, req) => {
 				for (let filterword of badwords) {str = str.replace(new RegExp(filterword, "ig"), "***")};
 				msg(clients.get(myid).nickname, clients, str);
 			} else {
-				ws.terminate(2012);
+				ws.terminate();
 			}
 		}
 
