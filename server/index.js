@@ -43,6 +43,12 @@ objects.set("text", new Text("Spawn", "black", new Obj(50, -100, 0, 0, "none", "
 
 function update() {
 	objects.forEach((obj, name) => {
+		if (obj.hp <= 0) {
+			if (obj.type === "player") {
+				obj.speed = 0;
+				obj.jumpPower = 0;
+			} else {objects.delete(name)}
+		}
 		if (obj.mode === "dynamic") obj.vy += gravity;
 		obj.vx = Math.round((obj.vx*(!obj.onGround ? 0.99 : 0.8))*1000)/1000;
 		obj.vy = Math.round((obj.vy*0.99)*1000)/1000;
@@ -199,8 +205,8 @@ function server_sync() {
 	let objectsForClient = new Map();
 	objects.forEach((obj, id) => {
   	let tmpobj = {};
-  	tmpobj.x = obj.x;
-  	tmpobj.y = obj.y;
+  	tmpobj.x = Math.round(obj.x);
+  	tmpobj.y = Math.round(obj.y);
   	tmpobj.width = obj.width;
   	tmpobj.height = obj.height;
   	tmpobj.vx = obj.vx;
@@ -208,7 +214,7 @@ function server_sync() {
 		tmpobj.onGround = obj.onGround;
 		tmpobj.type = obj.type;
 		tmpobj.color = obj.color;
-		tmpobj.hp = obj.health;
+		tmpobj.hp = Math.round(obj.health);
 		if (obj.nickname) tmpobj.nickname = obj.nickname;
 		if (obj.text) tmpobj.text = obj.text;
 		if (obj.textColor) tmpobj.textColor = obj.textColor;
@@ -308,6 +314,12 @@ wss.on("connection", (ws, req) => {
 						}
 						nickname = editNickname;
 
+						clients.forEach((client, id) => {
+							if (nickname == client.nickname) {
+								ws.terminate();
+								return;
+							}
+						});
 						if (!(nickname.length >= 3 && nickname.length <= 20)) {
 							ws.terminate();
 							return;
