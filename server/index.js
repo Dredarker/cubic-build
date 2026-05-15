@@ -43,7 +43,7 @@ objects.set("text", new Text("Spawn", "black", new Obj(50, -100, 0, 0, "none", "
 
 function update() {
 	objects.forEach((obj, name) => {
-		if (obj.hp <= 0) {
+		if (obj.health <= 0) {
 			if (obj.type === "player") {
 				obj.speed = 0;
 				obj.jumpPower = 0;
