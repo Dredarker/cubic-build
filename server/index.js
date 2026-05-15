@@ -50,8 +50,8 @@ function update() {
 			} else {objects.delete(name)}
 		}
 		if (obj.mode === "dynamic") obj.vy += gravity;
-		obj.vx = Math.round((obj.vx*(!obj.onGround ? 0.99 : 0.8))*1000)/1000;
-		obj.vy = Math.round((obj.vy*0.99)*1000)/1000;
+		obj.vx = Math.round(obj.vx*(obj.onGround ? 0.8 : 1)*1000)/1000;
+		obj.vy = Math.round(obj.vy*1000)/1000;
 
 		if (
 			obj.mode === "dynamic" ||
